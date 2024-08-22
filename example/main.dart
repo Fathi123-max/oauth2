@@ -7,8 +7,9 @@ import 'package:oauth2/oauth2.dart' as oauth2;
 // server. They're usually included in the server's documentation of its
 // OAuth2 API.
 final authorizationEndpoint =
-    Uri.parse('http://example.com/oauth2/authorization');
-final tokenEndpoint = Uri.parse('http://example.com/oauth2/token');
+    Uri.parse('https://api.prod.whoop.com/oauth/oauth2/auth');
+final tokenEndpoint =
+    Uri.parse('https://api.prod.whoop.com/oauth/oauth2/token');
 
 // The authorization server will issue each client a separate client
 // identifier and secret, which allows the server to tell which client
@@ -19,14 +20,15 @@ final tokenEndpoint = Uri.parse('http://example.com/oauth2/token');
 // available may not be able to make sure the client secret is kept a
 // secret. This is fine; OAuth2 servers generally won't rely on knowing
 // with certainty that a client is who it claims to be.
-const identifier = 'my client identifier';
-const secret = 'my client secret';
+const identifier = '4202e0e4-595d-45ed-846e-8dde6d5abcf5';
+const secret =
+    'a20f3df7a87451fe23dd382ab6b241a010b6246b88b45ffe79c5e4b5f7e37140';
 
 // This is a URL on your application's server. The authorization server
 // will redirect the resource owner here once they've authorized the
 // client. The redirection will include the authorization code in the
 // query parameters.
-final redirectUrl = Uri.parse('http://my-site.com/oauth2-redirect');
+final redirectUrl = Uri.parse('my.test.app://callback');
 
 /// A file in which the users credentials are stored persistently. If the server
 /// issues a refresh token allowing the client to refresh outdated credentials,
@@ -44,7 +46,14 @@ Future<oauth2.Client> createClient() async {
   if (exists) {
     var credentials =
         oauth2.Credentials.fromJson(await credentialsFile.readAsString());
-    return oauth2.Client(credentials, identifier: identifier, secret: secret);
+    return oauth2.Client(credentials,
+        identifier: identifier,
+        basicAuth: exists,
+        httpClient: oauth2.Client(
+          credentials,
+          identifier: identifier,
+        ),
+        secret: secret);
   }
 
   // If we don't have OAuth2 credentials yet, we need to get the resource owner
@@ -56,7 +65,10 @@ Future<oauth2.Client> createClient() async {
   // A URL on the authorization server (authorizationEndpoint with some
   // additional query parameters). Scopes and state can optionally be passed
   // into this method.
-  var authorizationUrl = grant.getAuthorizationUrl(redirectUrl);
+  var authorizationUrl = grant.getAuthorizationUrl(
+    redirectUrl,
+    scopes: ['read:sleep'],
+  );
 
   // Redirect the resource owner to the authorization URL. Once the resource
   // owner has authorized, they'll be redirected to `redirectUrl` with an
@@ -77,7 +89,8 @@ void main() async {
   var client = await createClient();
 
   // Once you have a Client, you can use it just like any other HTTP client.
-  print(await client.read(Uri.http('example.com', 'protected-resources.txt')));
+  print(await client.read(Uri.http(
+      'https://api.prod.whoop.com/developer/v1/activity/sleep/93845')));
 
   // Once we're done with the client, save the credentials file. This ensures
   // that if the credentials were automatically refreshed while using the
